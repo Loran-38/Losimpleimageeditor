@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur d'Image</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Styles personnalisés */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        #originalImage, #fileInput { /* Cacher l'image originale ET l'input file réel */
+            display: none;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d1d5db;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.375rem; /* md */
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            display: inline-flex; /* Pour aligner icône et texte */
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* Espace entre icône et texte */
+        }
+        .btn:hover {
+             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+        .btn-primary {
+            background-color: #16a34a;
+            color: white;
+        }
+         .btn-primary:hover {
+            background-color: #15803d;
+        }
+        .btn-upload { /* Style spécifique pour le bouton de téléversement */
+             background-color: #3b82f6; /* Bleu */
+             color: white;
+        }
+        .btn-upload:hover {
+             background-color: #2563eb;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl max-w-3xl w-full">
+        <h1 class="text-2xl font-bold text-center mb-4 text-gray-800">Éditeur d'Image</h1>
+
+        <div class="mb-4 text-center">
+            <input type="file" id="fileInput" accept="image/*">
+            <button id="uploadBtn" class="btn btn-upload">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload" viewBox="0 0 16 16">
+                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                  <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+                </svg>
+                <span>Choisir une image</span>
+            </button>
+        </div>
+
+        <div class="mb-6 flex justify-center min-h-[200px] bg-gray-100 rounded-lg items-center">
+             <img id="originalImage" src="https://placehold.co/600x400/a2d9a5/333333?text=Image+initiale" alt="Image originale" crossorigin="anonymous">
+             <canvas id="imageCanvas" class="rounded-lg"></canvas>
+             <span id="canvasPlaceholder" class="text-gray-500">Aucune image chargée</span>
+        </div>
+
+        <div class="space-y-5 bg-gray-100 p-5 rounded-lg border border-gray-200">
+            <div class="flex items-center space-x-3">
+                <label for="brightness" class="w-24 text-sm font-medium text-gray-700">Luminosité :</label>
+                <input type="range" id="brightness" min="-100" max="100" value="0" class="flex-grow" disabled> <span id="brightnessValue" class="w-10 text-sm text-gray-600 text-right">0</span>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <label for="contrast" class="w-24 text-sm font-medium text-gray-700">Contraste :</label>
+                <input type="range" id="contrast" min="-100" max="100" value="0" class="flex-grow" disabled> <span id="contrastValue" class="w-10 text-sm text-gray-600 text-right">0</span>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <label for="filters" class="w-24 text-sm font-medium text-gray-700">Filtres :</label>
+                <select id="filters" class="flex-grow p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" disabled> <option value="none">Aucun</option>
+                    <option value="grayscale(100%)">Niveaux de gris</option>
+                    <option value="sepia(100%)">Sépia</option>
+                    <option value="invert(100%)">Inverser</option>
+                    <option value="blur(3px)">Flou</option>
+                    <option value="saturate(2)">Saturation</option>
+                    <option value="hue-rotate(90deg)">Rotation Teinte</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-6 flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+            <button id="rotateBtn" class="btn btn-secondary" disabled> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+                </svg>
+                <span>Pivoter</span>
+            </button>
+            <button id="resetBtn" class="btn btn-secondary" disabled>Réinitialiser</button> <button id="downloadBtn" class="btn btn-primary" disabled> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                   <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                   <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                 </svg>
+                <span>Télécharger l'Image</span>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Éléments du DOM
+            const originalImage = document.getElementById('originalImage');
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            const canvasPlaceholder = document.getElementById('canvasPlaceholder');
+
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+
+            const brightnessSlider = document.getElementById('brightness');
+            const contrastSlider = document.getElementById('contrast');
+            const filterSelect = document.getElementById('filters');
+            const rotateBtn = document.getElementById('rotateBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            const brightnessValueSpan = document.getElementById('brightnessValue');
+            const contrastValueSpan = document.getElementById('contrastValue');
+
+            let currentRotation = 0;
+            let imageLoaded = false;
+            let imgWidth, imgHeight;
+
+            // Fonction pour activer/désactiver les contrôles
+            function setControlsEnabled(enabled) {
+                 brightnessSlider.disabled = !enabled;
+                 contrastSlider.disabled = !enabled;
+                 filterSelect.disabled = !enabled;
+                 rotateBtn.disabled = !enabled;
+                 resetBtn.disabled = !enabled;
+                 downloadBtn.disabled = !enabled;
+                 // Masquer/afficher le placeholder du canvas
+                 canvasPlaceholder.style.display = enabled ? 'none' : 'inline';
+                 canvas.style.display = enabled ? 'block' : 'none'; // Afficher/cacher le canvas lui-même
+            }
+
+            // Désactiver les contrôles au démarrage
+            setControlsEnabled(false);
+
+
+            // Fonction pour dessiner l'image sur le canvas
+            function drawImage() {
+                if (!imageLoaded) return;
+
+                const brightness = brightnessSlider.value;
+                const contrast = contrastSlider.value;
+                const filter = filterSelect.value;
+
+                brightnessValueSpan.textContent = brightness;
+                contrastValueSpan.textContent = contrast;
+
+                const angleRad = currentRotation * Math.PI / 180;
+                const absCos = Math.abs(Math.cos(angleRad));
+                const absSin = Math.abs(Math.sin(angleRad));
+
+                const canvasWidth = imgWidth * absCos + imgHeight * absSin;
+                const canvasHeight = imgWidth * absSin + imgHeight * absCos;
+
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = `brightness(${100 + parseInt(brightness)}%) contrast(${100 + parseInt(contrast)}%) ${filter !== 'none' ? filter : ''}`;
+
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(angleRad);
+                ctx.translate(-imgWidth / 2, -imgHeight / 2);
+                ctx.drawImage(originalImage, 0, 0, imgWidth, imgHeight);
+                ctx.restore();
+                ctx.filter = 'none';
+            }
+
+            // --- Événements ---
+
+            // Clic sur le bouton "Choisir une image" déclenche l'input file caché
+            uploadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Changement dans l'input file (une image est choisie)
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        // Mettre à jour la source de l'image cachée
+                        originalImage.src = e.target.result;
+                        // L'événement 'onload' de originalImage sera déclenché ensuite
+                    }
+                    reader.onerror = () => {
+                         console.error("Erreur lors de la lecture du fichier.");
+                         alert("Erreur lors de la lecture du fichier sélectionné.");
+                         setControlsEnabled(false); // Garder les contrôles désactivés
+                         fileInput.value = null; // Réinitialiser l'input file
+                    }
+                    // Lire le fichier comme une URL de données
+                    reader.readAsDataURL(file);
+                } else if (file) {
+                    // Si un fichier est sélectionné mais n'est pas une image
+                    alert("Veuillez sélectionner un fichier image valide (ex: jpg, png, gif).");
+                    fileInput.value = null; // Réinitialiser l'input file
+                }
+            });
+
+
+            // Chargement de l'image (quand originalImage.src est modifié)
+            originalImage.onload = () => {
+                console.log("Nouvelle image chargée dans l'élément img");
+                imgWidth = originalImage.naturalWidth;
+                imgHeight = originalImage.naturalHeight;
+                imageLoaded = true;
+                currentRotation = 0; // Réinitialiser la rotation pour la nouvelle image
+                resetFilters(); // Réinitialiser les filtres et curseurs
+                setControlsEnabled(true); // Activer les contrôles
+                drawImage(); // Dessiner la nouvelle image
+                fileInput.value = null; // Réinitialiser l'input file pour permettre de re-télécharger le même fichier
+            };
+
+            // Gestion des erreurs de chargement d'image (src invalide, etc.)
+             originalImage.onerror = () => {
+                console.error("Erreur lors du chargement de l'image dans l'élément img.");
+                alert("Impossible de charger l'image. Le fichier est peut-être corrompu ou dans un format non supporté.");
+                imageLoaded = false;
+                setControlsEnabled(false); // Désactiver les contrôles
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Effacer le canvas
+             };
+
+
+            // Changement des curseurs et du sélecteur de filtre
+            brightnessSlider.addEventListener('input', drawImage);
+            contrastSlider.addEventListener('input', drawImage);
+            filterSelect.addEventListener('change', drawImage);
+
+            // Bouton Pivoter
+            rotateBtn.addEventListener('click', () => {
+                if (!imageLoaded) return;
+                currentRotation = (currentRotation + 90) % 360;
+                drawImage();
+            });
+
+             // Fonction pour réinitialiser les filtres et curseurs aux valeurs par défaut
+            function resetFilters() {
+                brightnessSlider.value = 0;
+                contrastSlider.value = 0;
+                filterSelect.value = 'none';
+                // Mettre à jour l'affichage des valeurs
+                brightnessValueSpan.textContent = '0';
+                contrastValueSpan.textContent = '0';
+            }
+
+            // Bouton Réinitialiser (réinitialise filtres ET rotation)
+            resetBtn.addEventListener('click', () => {
+                if (!imageLoaded) return;
+                currentRotation = 0;
+                resetFilters();
+                drawImage(); // Redessine avec les valeurs par défaut
+            });
+
+            // Bouton Télécharger
+            downloadBtn.addEventListener('click', () => {
+                if (!imageLoaded) return;
+
+                const link = document.createElement('a');
+                link.download = 'image-modifiee.png';
+                 try {
+                    link.href = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+                    link.click();
+                 } catch (e) {
+                     console.error("Erreur lors de la création de l'URL de données : ", e);
+                     alert("Impossible de télécharger l'image. Une erreur s'est produite.");
+                 }
+            });
+
+            // Gérer le cas où l'image initiale (placeholder) se charge correctement
+            // (Bien que nous désactivions les contrôles initialement)
+            if (originalImage.complete && originalImage.naturalWidth > 0) {
+                 // Ne rien faire ici, on attend le téléversement utilisateur
+                 console.log("Image initiale (placeholder) chargée, mais on attend le téléversement.");
+            } else if (originalImage.src && !originalImage.complete) {
+                // Si une src est définie mais pas encore chargée, l'événement onload/onerror s'en chargera.
+                console.log("Attente du chargement de l'image initiale...");
+            } else if (originalImage.src && originalImage.complete) {
+                 // Si src est défini et complete, mais naturalWidth est 0 -> erreur probable
+                 originalImage.onerror();
+            }
+
+        });
+    </script>
+
+</body>
+</html>
